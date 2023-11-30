@@ -39,6 +39,10 @@ class MenuBarManager: NSObject {
 	var caffeinateProcess: Process?
 	var menu: NSMenu?
 
+	// Lazy-loaded images
+	lazy var activeImage = NSImage(named: "active")
+	lazy var inactiveImage = NSImage(named: "inactive")
+
 	override init() {
 		super.init()
 		setUpStatusBar()
@@ -49,7 +53,7 @@ class MenuBarManager: NSObject {
 		statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
 		if let button = statusBarItem.button {
-			button.image = NSImage(named: "inactive") // Your menu bar icon
+			button.image = inactiveImage // Use the lazy-loaded image
 			button.action = #selector(toggleCaffeinate(_:))
 			button.target = self
 			button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -59,32 +63,31 @@ class MenuBarManager: NSObject {
 	func setUpMenu() {
 		menu = NSMenu()
 		let quitMenuItem = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
-		quitMenuItem.target = self // Set the target to MenuBarManager instance
+		quitMenuItem.target = self
 		menu?.addItem(quitMenuItem)
 	}
-
 
 	@objc func toggleCaffeinate(_ sender: Any?) {
 		guard let event = NSApp.currentEvent else { return }
 
 		if event.type == .rightMouseUp {
-			statusBarItem.menu = menu // Set the menu before showing
-			statusBarItem.button?.performClick(nil) // Show menu
-			statusBarItem.menu = nil // Remove the menu to not interfere with left-click action
+			statusBarItem.menu = menu
+			statusBarItem.button?.performClick(nil)
+			statusBarItem.menu = nil
 		} else {
 			if caffeinateProcess == nil {
 				startCaffeinate()
 			} else {
 				stopCaffeinate()
 			}
-			updateMenuBarIcon() // Update the menu bar icon based on the active state
+			updateMenuBarIcon()
 		}
 	}
 
 	func startCaffeinate() {
 		let process = Process()
 		process.launchPath = "/usr/bin/caffeinate"
-		process.arguments = ["-di"] // Prevents display and system sleep
+		process.arguments = ["-di"]
 		process.launch()
 		caffeinateProcess = process
 	}
@@ -96,20 +99,13 @@ class MenuBarManager: NSObject {
 
 	func updateMenuBarIcon() {
 		if let button = statusBarItem.button {
-			// Check if the caffeinateProcess is active
-			if caffeinateProcess != nil {
-				// Set the image to the active icon
-				button.image = NSImage(named: "active")
-			} else {
-				// Set the image to the inactive icon
-				button.image = NSImage(named: "inactive")
-			}
+			button.image = caffeinateProcess != nil ? activeImage : inactiveImage
 		}
 	}
-	
+
 	@objc private func quitApp() {
 		stopCaffeinate()
 		NSApp.terminate(nil)
 	}
-
 }
+
