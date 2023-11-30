@@ -1,0 +1,26 @@
+![coffeemug](https://i.imgur.com/mfVLgnA.png)
+
+# Caffeine
+
+Caffeine is a lightweight, simple tool for macOS. Its purpose is to prevent
+your Mac from automatically going to sleep, dimming the screen, or starting
+screen savers. It's easy to use, lives in your menu bar, and it's a perfect
+tool for uninterrupted work sessions.
+
+## Features
+
+- One-click activation and deactivation
+- Low resource usage and high efficiency
+
+## How it works
+
+Uses the builtin `caffeinate` tool with MacOS.
+
+https://opensource.apple.com/source/PowerManagement/PowerManagement-1132.141.1/caffeinate/caffeinate.c.auto.html
+
+More specifically:
+
+* IOPM library assertions (Input/Output Power Management)
+* kDisplayAssertionFlag / kIdleAssertionFlag
+* Grand Central Dispatch for timeouts
+
