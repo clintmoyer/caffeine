@@ -9,8 +9,8 @@ tool for uninterrupted work sessions.
 
 ## Features
 
-- One-click activation and deactivation
-- Low resource usage and high efficiency
+- Easy click activation and deactivation
+- Uses less than 15MB of memory
 
 ## How it works
 
