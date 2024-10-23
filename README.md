@@ -11,15 +11,12 @@ Caffeine is a lightweight macOS menu bar application that prevents your Mac from
 - Minimal system resource usage while running.
 - Easily quit the application from the menu bar.
 
-## Requirements
-
-- macOS 10.14 or higher.
-- Swift 5.0 or higher.
-- rsvg-convert (for converting SVG icons to PNG).
-
 ## Installation
 
-This will compile the program, package the app, and create the DMG.
+Download the latest release version:
+https://github.com/clintmoyer/caffeine/releases
+
+Or build manually:
 
 ```bash
 git clone https://github.com/clintmoyer/caffeine.git
@@ -44,4 +41,3 @@ To run the unit tests for Caffeine, use the `test` target in the Makefile:
 make test
 ```
 
-This will compile and run the tests defined in `tests.swift` and ensure that the core functionality (activating, deactivating, and toggling Caffeine) works as expected.
