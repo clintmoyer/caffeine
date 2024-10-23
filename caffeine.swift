@@ -23,6 +23,7 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
     var isActive = false  // Track the state of Caffeine
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        NSApp.setActivationPolicy(.prohibited)
         setupMenuBarIcon()
     }
 
