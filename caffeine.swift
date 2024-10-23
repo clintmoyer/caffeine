@@ -1,4 +1,6 @@
 /*
+Copyright 2024 Clint Moyer
+
 This program is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
 Foundation, either version 3 of the License, or (at your option) any later
@@ -13,10 +15,12 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import Cocoa
+import IOKit.pwr_mgt
 
 class CaffeineApp: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
-    var isActive = false  // New property to track activation status
+    var assertionID: IOPMAssertionID = 0  // For sleep prevention
+    var isActive = false  // Track the state of Caffeine
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         setupMenuBarIcon()
@@ -26,9 +30,9 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         if let button = statusItem.button {
-            button.image = NSImage(named: "inactive")  // Default icon
+            button.image = NSImage(named: "inactive")  // Default to inactive icon
 
-            // Create custom button and assign action for toggling Caffeine
+            // Create a custom button to handle user interaction
             let customView = CustomStatusButton(frame: button.bounds)
             customView.target = self
             button.addSubview(customView)
@@ -40,21 +44,48 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
     }
 
     @objc func toggleCaffeine() {
-        isActive.toggle()  // Toggle the active state
-        updateIcon()       // Update icon based on the current state
+        if isActive {
+            deactivateCaffeine()  // Deactivate if currently active
+        } else {
+            activateCaffeine()    // Activate if currently inactive
+        }
+        updateIcon()  // Update the icon to reflect the current state
+    }
+
+    func activateCaffeine() {
+        let reasonForActivity = "Preventing sleep while Caffeine is active" as CFString
+        let result = IOPMAssertionCreateWithName(kIOPMAssertionTypeNoDisplaySleep as CFString,
+                                                 IOPMAssertionLevel(kIOPMAssertionLevelOn),
+                                                 reasonForActivity,
+                                                 &assertionID)
+        if result == kIOReturnSuccess {
+            isActive = true  // Set active if the assertion is successful
+            print("Caffeine activated. Preventing sleep.")
+        } else {
+            print("Failed to create sleep assertion.")
+        }
+    }
+
+    func deactivateCaffeine() {
+        if isActive {
+            IOPMAssertionRelease(assertionID)  // Release the assertion
+            isActive = false  // Set inactive after deactivation
+            print("Caffeine deactivated. Sleep allowed.")
+        }
     }
 
     func updateIcon() {
         if let button = statusItem.button {
             if isActive {
-                button.image = NSImage(named: "active")   // Active icon
+                button.image = NSImage(named: "active")   // Active state icon
             } else {
-                button.image = NSImage(named: "inactive") // Inactive icon
+                button.image = NSImage(named: "inactive") // Inactive state icon
             }
         }
     }
 
     @objc func quitApp() {
+        deactivateCaffeine()  // Ensure sleep is allowed when quitting
         NSApplication.shared.terminate(self)
     }
 }
@@ -64,7 +95,7 @@ class CustomStatusButton: NSView {
 
     override func mouseDown(with event: NSEvent) {
         if event.type == .leftMouseDown {
-            target?.toggleCaffeine()  // Toggle state on left-click
+            target?.toggleCaffeine()  // Toggle Caffeine on left-click
         }
     }
 
