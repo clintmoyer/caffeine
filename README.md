@@ -17,3 +17,9 @@ Caffeine is a lightweight macOS menu bar application that prevents your Mac from
 make
 ```
 
+## Usage
+
+Click the coffee icon in the taskbar to toggle off/on the Caffeine awake state.
+
+![screenshot](https://github.com/user-attachments/assets/1d9f7cb9-2332-4df6-a4d7-a6cefd3464d0)
+
