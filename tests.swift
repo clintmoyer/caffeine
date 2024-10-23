@@ -1,13 +1,13 @@
 import XCTest
 
-@testable import CaffeineApp // This assumes your app code is in `CaffeineApp.swift`
+@testable import caffeine
 
 final class CaffeineAppTests: XCTestCase {
     var app: CaffeineApp!
 
     override func setUp() {
         super.setUp()
-        app = CaffeineApp() // initialize your app
+        app = CaffeineApp()
     }
 
     override func tearDown() {
@@ -34,5 +34,5 @@ final class CaffeineAppTests: XCTestCase {
     }
 }
 
-// To run the tests
 XCTMain([testCase(CaffeineAppTests.allTests)])
+
