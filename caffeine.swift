@@ -28,7 +28,7 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
     }
 
     func setupMenuBarIcon() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         
         if let button = statusItem.button {
             button.image = NSImage(named: "inactive")  // Default to inactive icon
@@ -59,11 +59,10 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
                                                  IOPMAssertionLevel(kIOPMAssertionLevelOn),
                                                  reasonForActivity,
                                                  &assertionID)
-        if result == kIOReturnSuccess {
-            isActive = true  // Set active if the assertion is successful
-            print("Caffeine activated. Preventing sleep.")
-        } else {
-            print("Failed to create sleep assertion.")
+        if result != kIOReturnSuccess {
+            print("Failed to create sleep assertion: \(result)")
+            isActive = false  // Ensure state consistency
+            NSAlert(error: NSError(domain: "", code: Int(result), userInfo: [NSLocalizedDescriptionKey: "Failed to prevent sleep"])).runModal()
         }
     }
 
