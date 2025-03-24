@@ -29,7 +29,7 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
 
     func setupMenuBarIcon() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        
+
         if let button = statusItem.button {
             button.image = NSImage(named: "inactive")  // Default to inactive icon
 
@@ -48,22 +48,30 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
         if isActive {
             deactivateCaffeine()  // Deactivate if currently active
         } else {
-            activateCaffeine()    // Activate if currently inactive
+            activateCaffeine()  // Activate if currently inactive
         }
         updateIcon()  // Update the icon to reflect the current state
     }
 
     func activateCaffeine() {
         let reasonForActivity = "Preventing sleep while Caffeine is active" as CFString
-        let result = IOPMAssertionCreateWithName(kIOPMAssertionTypeNoDisplaySleep as CFString,
-                                                 IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                                                 reasonForActivity,
-                                                 &assertionID)
+        let result = IOPMAssertionCreateWithName(
+            kIOPMAssertionTypeNoDisplaySleep as CFString,
+            IOPMAssertionLevel(kIOPMAssertionLevelOn),
+            reasonForActivity,
+            &assertionID)
         if result != kIOReturnSuccess {
             print("Failed to create sleep assertion: \(result)")
             isActive = false  // Ensure state consistency
-            NSAlert(error: NSError(domain: "", code: Int(result), userInfo: [NSLocalizedDescriptionKey: "Failed to prevent sleep"])).runModal()
+            NSAlert(
+                error: NSError(
+                    domain: "", code: Int(result),
+                    userInfo: [NSLocalizedDescriptionKey: "Failed to prevent sleep"])
+            ).runModal()
+            return
         }
+        print("Caffeine activated. Sleep prevented.")
+        isActive = true
     }
 
     func deactivateCaffeine() {
@@ -77,9 +85,9 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
     func updateIcon() {
         if let button = statusItem.button {
             if isActive {
-                button.image = NSImage(named: "active")   // Active state icon
+                button.image = NSImage(named: "active")  // Active state icon
             } else {
-                button.image = NSImage(named: "inactive") // Inactive state icon
+                button.image = NSImage(named: "inactive")  // Inactive state icon
             }
         }
     }
@@ -110,4 +118,3 @@ let app = NSApplication.shared
 let delegate = CaffeineApp()
 app.delegate = delegate
 app.run()
-
