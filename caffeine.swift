@@ -64,6 +64,7 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
             isActive = false  // Ensure state consistency
             NSAlert(error: NSError(domain: "", code: Int(result), userInfo: [NSLocalizedDescriptionKey: "Failed to prevent sleep"])).runModal()
         }
+        isActive = true
     }
 
     func deactivateCaffeine() {
