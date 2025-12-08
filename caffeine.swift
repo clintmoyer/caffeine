@@ -132,13 +132,13 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
     }
 
     private func activate() {
-        let reason = "Caffeine: Preventing display sleep" as CFString
-        let result = IOPMAssertionCreateWithName(
-            kIOPMAssertionTypeNoDisplaySleep as CFString,
-            IOPMAssertionLevel(kIOPMAssertionLevelOn),
-            reason,
-            &assertionID
-        )
+        let properties: [CFString: Any] = [
+            kIOPMAssertionTypeKey: kIOPMAssertionTypeNoDisplaySleep,
+            kIOPMAssertionLevelKey: kIOPMAssertionLevelOn,
+            kIOPMAssertionNameKey: "Caffeine: Preventing display sleep",
+        ]
+
+        let result = IOPMAssertionCreateWithProperties(properties as CFDictionary, &assertionID)
 
         if result == kIOReturnSuccess {
             isActive = true
