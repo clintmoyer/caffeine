@@ -18,18 +18,45 @@ import Cocoa
 import IOKit.pwr_mgt
 import UserNotifications
 
+protocol PowerManager {
+    func createAssertion(withProperties properties: CFDictionary, assertionID: UnsafeMutablePointer<IOPMAssertionID>) -> IOReturn
+    func releaseAssertion(_ assertionID: IOPMAssertionID) -> IOReturn
+}
+
+class RealPowerManager: PowerManager {
+    func createAssertion(withProperties properties: CFDictionary, assertionID: UnsafeMutablePointer<IOPMAssertionID>) -> IOReturn {
+        IOPMAssertionCreateWithProperties(properties, assertionID)
+    }
+
+    func releaseAssertion(_ assertionID: IOPMAssertionID) -> IOReturn {
+        IOPMAssertionRelease(assertionID)
+    }
+}
+
 @MainActor
 class CaffeineApp: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
-    private var assertionID: IOPMAssertionID = 0
-    private var isActive = false {
+    var assertionID: IOPMAssertionID = 0
+    var isActive = false {
         didSet {
             updateUI()
         }
     }
 
-    private let activeIcon = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: "Caffeine Active")
-    private let inactiveIcon = NSImage(systemSymbolName: "cup.and.saucer", accessibilityDescription: "Caffeine Inactive")
+    let activeIcon = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: "Caffeine Active")
+    let inactiveIcon = NSImage(systemSymbolName: "cup.and.saucer", accessibilityDescription: "Caffeine Inactive")
+
+    var powerManager: PowerManager
+
+    override init() {
+        self.powerManager = RealPowerManager()
+        super.init()
+    }
+
+    init(powerManager: PowerManager = RealPowerManager()) {
+        self.powerManager = powerManager
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(.accessory) // Better than .prohibited
@@ -82,7 +109,7 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
         statusItem.menu = nil // Remove menu so left-click still works
     }
 
-    private func createMenu() -> NSMenu {
+    func createMenu() -> NSMenu {
         let menu = NSMenu()
 
         // Toggle item with checkmark
@@ -124,7 +151,7 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
         updateUI()
     }
 
-    @objc private func toggle() {
+    @objc func toggle() {
         if isActive {
             deactivate()
         } else {
@@ -132,14 +159,14 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func activate() {
+    func activate() {
         let properties: [CFString: Any] = [
             kIOPMAssertionTypeKey as CFString: kIOPMAssertionTypeNoDisplaySleep as CFString,
             kIOPMAssertionLevelKey as CFString: kIOPMAssertionLevelOn,
             kIOPMAssertionNameKey as CFString: "Caffeine: Preventing display sleep" as CFString
         ]
 
-        let result = IOPMAssertionCreateWithProperties(properties as CFDictionary, &assertionID)
+        let result = powerManager.createAssertion(withProperties: properties as CFDictionary, assertionID: &assertionID)
 
         if result == kIOReturnSuccess {
             isActive = true
@@ -149,10 +176,10 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func deactivate() {
+    func deactivate() {
         guard isActive else { return }
 
-        let result = IOPMAssertionRelease(assertionID)
+        let result = powerManager.releaseAssertion(assertionID)
 
         if result == kIOReturnSuccess || result == kIOReturnNotFound {
             isActive = false
@@ -163,7 +190,7 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func updateUI() {
+    func updateUI() {
         guard let button = statusItem.button else { return }
 
         button.image = isActive ? activeIcon : inactiveIcon
