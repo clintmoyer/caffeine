@@ -33,6 +33,3 @@ final class CaffeineAppTests: XCTestCase {
         XCTAssertFalse(app.isActive, "Caffeine should be inactive after another toggle.")
     }
 }
-
-XCTMain([testCase(CaffeineAppTests.allTests)])
-
