@@ -1,36 +1,29 @@
-APP_NAME = Caffeine
-SRC_FILE = caffeine.swift
-PLIST_FILE = info.plist
-BUNDLE_NAME = $(APP_NAME).app
-RESOURCES_DIR = $(BUNDLE_NAME)/Contents/Resources
-EXECUTABLE_DIR = $(BUNDLE_NAME)/Contents/MacOS
-TEST_FILE = tests.swift
+PREFIX ?= /usr/local
+BINDIR = $(PREFIX)/bin
 
-all: $(BUNDLE_NAME)
+SWIFT_FLAGS = -O -target x86_64-apple-macosx11.0
 
-active.png: active.svg
-	rsvg-convert -o active.png active.svg
+.PHONY: all build install uninstall clean
 
-inactive.png: inactive.svg
-	rsvg-convert -o inactive.png inactive.svg
+all: build
 
-$(APP_NAME): $(SRC_FILE)
-	swiftc -o $(APP_NAME) $(SRC_FILE)
+build:
+	swiftc $(SWIFT_FLAGS) main.swift -o caffeine
 
-$(BUNDLE_NAME): $(APP_NAME) active.png inactive.png $(PLIST_FILE)
-	# Create necessary directories
-	mkdir -p $(EXECUTABLE_DIR)
-	mkdir -p $(RESOURCES_DIR)
-	# Copy the executable and plist file
-	cp $(APP_NAME) $(EXECUTABLE_DIR)/
-	cp $(PLIST_FILE) $(BUNDLE_NAME)/Contents/Info.plist
-	# Copy the PNG images to the Resources folder
-	cp active.png inactive.png $(RESOURCES_DIR)/
+install: build
+	mkdir -p $(BINDIR)
+	install -m 755 caffeine $(BINDIR)/caffeine
+	@echo "Caffeine installed to $(BINDIR)/caffeine"
+	@echo ""
+	@echo "To start Caffeine, run: caffeine"
+	@echo "To run at login, add to Login Items in System Preferences"
 
-test:
-	swiftc -o test_runner $(SRC_FILE) $(TEST_FILE) -Xlinker -bundle -framework XCTest
-	./test_runner
+uninstall:
+	rm -f $(BINDIR)/caffeine
+	@echo "Caffeine uninstalled"
 
 clean:
-	rm -rf $(APP_NAME) $(BUNDLE_NAME) active.png inactive.png test_runner
+	rm -f caffeine
+	rm -rf *.dSYM
 
+.DEFAULT_GOAL := build
