@@ -3,7 +3,7 @@ import Cocoa
 import IOKit.pwr_mgt
 import UserNotifications
 
-@testable import Caffeine
+@testable import caffeine
 
 class MockPowerManager: PowerManager {
     var createCalled = false
@@ -28,23 +28,27 @@ class CaffeineAppTests: XCTestCase {
     var sut: CaffeineApp!
     var mockPowerManager: MockPowerManager!
 
+    @MainActor
     override func setUp() {
         super.setUp()
         mockPowerManager = MockPowerManager()
         sut = CaffeineApp(powerManager: mockPowerManager)
     }
 
+    @MainActor
     override func tearDown() {
         sut = nil
         mockPowerManager = nil
         super.tearDown()
     }
 
+    @MainActor
     func testInitialState() {
         XCTAssertFalse(sut.isActive)
         XCTAssertEqual(sut.assertionID, 0)
     }
 
+    @MainActor
     func testActivate_Success_SetsActiveAndAssertionID() {
         sut.activate()
 
@@ -53,6 +57,7 @@ class CaffeineAppTests: XCTestCase {
         XCTAssertEqual(sut.assertionID, mockPowerManager.createdAssertionID)
     }
 
+    @MainActor
     func testActivate_Failure_DoesNotSetActive() {
         mockPowerManager.createResult = kIOReturnError
 
@@ -63,6 +68,7 @@ class CaffeineAppTests: XCTestCase {
         XCTAssertEqual(sut.assertionID, 0)
     }
 
+    @MainActor
     func testDeactivate_Success_WhenActive_ResetsState() {
         sut.activate() // Precondition: active
 
@@ -73,6 +79,7 @@ class CaffeineAppTests: XCTestCase {
         XCTAssertEqual(sut.assertionID, 0)
     }
 
+    @MainActor
     func testDeactivate_Failure_WhenActive_KeepsActiveState() {
         sut.activate() // Precondition: active
         mockPowerManager.releaseResult = kIOReturnError // Not success or notFound
@@ -84,6 +91,7 @@ class CaffeineAppTests: XCTestCase {
         XCTAssertEqual(sut.assertionID, mockPowerManager.createdAssertionID)
     }
 
+    @MainActor
     func testDeactivate_WhenInactive_DoesNothing() {
         sut.deactivate()
 
@@ -92,6 +100,7 @@ class CaffeineAppTests: XCTestCase {
         XCTAssertEqual(sut.assertionID, 0)
     }
 
+    @MainActor
     func testToggle_FromInactiveToActive() {
         XCTAssertFalse(sut.isActive)
 
@@ -101,6 +110,7 @@ class CaffeineAppTests: XCTestCase {
         XCTAssertTrue(sut.isActive)
     }
 
+    @MainActor
     func testToggle_FromActiveToInactive() {
         sut.activate() // Precondition: active
         XCTAssertTrue(sut.isActive)
@@ -111,6 +121,7 @@ class CaffeineAppTests: XCTestCase {
         XCTAssertFalse(sut.isActive)
     }
 
+    @MainActor
     func testCreateMenu_WhenInactive() {
         let menu = sut.createMenu()
 
@@ -130,6 +141,7 @@ class CaffeineAppTests: XCTestCase {
         XCTAssertEqual(quitItem.keyEquivalent, "q")
     }
 
+    @MainActor
     func testCreateMenu_WhenActive() {
         sut.activate() // Precondition: active
 
@@ -145,6 +157,7 @@ class CaffeineAppTests: XCTestCase {
         XCTAssertEqual(statusItem.title, "⚡ Preventing Sleep")
     }
 
+    @MainActor
     func testUpdateUI_WhenActive_SetsActiveIconAndTooltip() {
         sut.setupMenuBar() // Need to initialize statusItem (assume setupMenuBar is called in tests if needed)
         sut.isActive = true // Triggers updateUI via didSet
@@ -154,6 +167,7 @@ class CaffeineAppTests: XCTestCase {
         XCTAssertEqual(button.toolTip, "Caffeine Active - Click to deactivate")
     }
 
+    @MainActor
     func testUpdateUI_WhenInactive_SetsInactiveIconAndTooltip() {
         sut.setupMenuBar()
         sut.isActive = false

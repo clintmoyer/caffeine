@@ -35,7 +35,7 @@ class RealPowerManager: PowerManager {
 
 @MainActor
 class CaffeineApp: NSObject, NSApplicationDelegate {
-    private var statusItem: NSStatusItem!
+    var statusItem: NSStatusItem!  // Removed 'private'
     var assertionID: IOPMAssertionID = 0
     var isActive = false {
         didSet {
@@ -74,7 +74,7 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
         deactivate() // Clean up on quit
     }
 
-    private func setupMenuBar() {
+    func setupMenuBar() {  // Removed 'private'
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         guard let button = statusItem.button else {
