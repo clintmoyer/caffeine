@@ -8,7 +8,7 @@ SWIFT_FLAGS = -O -target x86_64-apple-macosx11.0
 all: build
 
 build:
-	swiftc $(SWIFT_FLAGS) main.swift -o caffeine
+	swiftc $(SWIFT_FLAGS) caffeine.swift -o caffeine
 
 install: build
 	mkdir -p $(BINDIR)

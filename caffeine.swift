@@ -16,6 +16,7 @@
 
 import Cocoa
 import IOKit.pwr_mgt
+import UserNotifications
 
 class CaffeineApp: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
@@ -32,6 +33,13 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(.accessory) // Better than .prohibited
         setupMenuBar()
+
+        // Request notification authorization
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { _, error in
+            if let error = error {
+                print("Error requesting notification authorization: \(error.localizedDescription)")
+            }
+        }
     }
 
     func applicationWillTerminate(_: Notification) {
@@ -168,11 +176,19 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
     }
 
     private func showNotification(title: String, body: String) {
-        let notification = NSUserNotification()
-        notification.title = title
-        notification.informativeText = body
-        notification.soundName = nil
-        NSUserNotificationCenter.default.deliver(notification)
+        let center = UNUserNotificationCenter.current()
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = nil
+
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+
+        center.add(request) { error in
+            if let error = error {
+                print("Error delivering notification: \(error.localizedDescription)")
+            }
+        }
     }
 
     private func showError(message: String) {
