@@ -1,114 +1,197 @@
 /*
-Copyright 2024 Clint Moyer
+ Copyright 2024 Clint Moyer
 
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation, either version 3 of the License, or (at your option) any later
-version.
+ This program is free software: you can redistribute it and/or modify it under
+ the terms of the GNU General Public License as published by the Free Software
+ Foundation, either version 3 of the License, or (at your option) any later
+ version.
 
-This program is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with
-this program. If not, see <https://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU General Public License along with
+ this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
 import Cocoa
 import IOKit.pwr_mgt
 
 class CaffeineApp: NSObject, NSApplicationDelegate {
-    var statusItem: NSStatusItem!
-    var assertionID: IOPMAssertionID = 0  // For sleep prevention
-    var isActive = false  // Track the state of Caffeine
-
-    func applicationDidFinishLaunching(_ aNotification: Notification) {
-        NSApp.setActivationPolicy(.prohibited)
-        setupMenuBarIcon()
+    private var statusItem: NSStatusItem!
+    private var assertionID: IOPMAssertionID = 0
+    private var isActive = false {
+        didSet {
+            updateUI()
+        }
     }
 
-    func setupMenuBarIcon() {
+    private let activeIcon = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: "Caffeine Active")
+    private let inactiveIcon = NSImage(systemSymbolName: "cup.and.saucer", accessibilityDescription: "Caffeine Inactive")
+
+    func applicationDidFinishLaunching(_: Notification) {
+        NSApp.setActivationPolicy(.accessory) // Better than .prohibited
+        setupMenuBar()
+    }
+
+    func applicationWillTerminate(_: Notification) {
+        deactivate() // Clean up on quit
+    }
+
+    private func setupMenuBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        
-        if let button = statusItem.button {
-            button.image = NSImage(named: "inactive")  // Default to inactive icon
 
-            // Create a custom button to handle user interaction
-            let customView = CustomStatusButton(frame: button.bounds)
-            customView.target = self
-            button.addSubview(customView)
+        guard let button = statusItem.button else {
+            fatalError("Failed to create status bar button")
         }
 
-        let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q"))
-        statusItem.menu = menu
+        // Configure button
+        button.image = inactiveIcon
+        button.image?.isTemplate = true // Adapt to menu bar theme
+        button.toolTip = "Caffeine - Click to toggle"
+        button.target = self
+        button.action = #selector(statusBarButtonClicked(_:))
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+
+        updateMenu()
     }
 
-    @objc func toggleCaffeine() {
-        if isActive {
-            deactivateCaffeine()  // Deactivate if currently active
+    @objc private func statusBarButtonClicked(_: NSStatusBarButton) {
+        guard let event = NSApp.currentEvent else { return }
+
+        if event.type == .rightMouseUp {
+            showMenu()
         } else {
-            activateCaffeine()    // Activate if currently inactive
+            toggle()
         }
-        updateIcon()  // Update the icon to reflect the current state
     }
 
-    func activateCaffeine() {
-        let reasonForActivity = "Preventing sleep while Caffeine is active" as CFString
-        let result = IOPMAssertionCreateWithName(kIOPMAssertionTypeNoDisplaySleep as CFString,
-                                                 IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                                                 reasonForActivity,
-                                                 &assertionID)
-        if result != kIOReturnSuccess {
-            print("Failed to create sleep assertion: \(result)")
-            isActive = false  // Ensure state consistency
-            NSAlert(error: NSError(domain: "", code: Int(result), userInfo: [NSLocalizedDescriptionKey: "Failed to prevent sleep"])).runModal()
-        }
-        isActive = true
+    private func showMenu() {
+        updateMenu()
+        statusItem.menu = createMenu()
+        statusItem.button?.performClick(nil) // Show menu
+        statusItem.menu = nil // Remove menu so left-click still works
     }
 
-    func deactivateCaffeine() {
+    private func createMenu() -> NSMenu {
+        let menu = NSMenu()
+
+        // Toggle item with checkmark
+        let toggleItem = NSMenuItem(
+            title: isActive ? "Deactivate" : "Activate",
+            action: #selector(toggle),
+            keyEquivalent: ""
+        )
+        toggleItem.state = isActive ? .on : .off
+        menu.addItem(toggleItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Status display
+        let statusItem = NSMenuItem(
+            title: isActive ? "⚡ Preventing Sleep" : "💤 Sleep Allowed",
+            action: nil,
+            keyEquivalent: ""
+        )
+        statusItem.isEnabled = false
+        menu.addItem(statusItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Quit
+        menu.addItem(
+            NSMenuItem(
+                title: "Quit Caffeine",
+                action: #selector(quitApp),
+                keyEquivalent: "q"
+            )
+        )
+
+        return menu
+    }
+
+    private func updateMenu() {
+        // Menu is created on-demand, so just update UI
+        updateUI()
+    }
+
+    @objc private func toggle() {
         if isActive {
-            IOPMAssertionRelease(assertionID)  // Release the assertion
-            isActive = false  // Set inactive after deactivation
-            print("Caffeine deactivated. Sleep allowed.")
+            deactivate()
+        } else {
+            activate()
         }
     }
 
-    func updateIcon() {
-        if let button = statusItem.button {
-            if isActive {
-                button.image = NSImage(named: "active")   // Active state icon
-            } else {
-                button.image = NSImage(named: "inactive") // Inactive state icon
-            }
+    private func activate() {
+        let reason = "Caffeine: Preventing display sleep" as CFString
+        let result = IOPMAssertionCreateWithName(
+            kIOPMAssertionTypeNoDisplaySleep as CFString,
+            IOPMAssertionLevel(kIOPMAssertionLevelOn),
+            reason,
+            &assertionID
+        )
+
+        if result == kIOReturnSuccess {
+            isActive = true
+            showNotification(title: "Caffeine Activated", body: "Display will not sleep")
+        } else {
+            showError(message: "Failed to prevent sleep (error: \(result))")
         }
     }
 
-    @objc func quitApp() {
-        deactivateCaffeine()  // Ensure sleep is allowed when quitting
+    private func deactivate() {
+        guard isActive else { return }
+
+        let result = IOPMAssertionRelease(assertionID)
+
+        if result == kIOReturnSuccess || result == kIOReturnNotFound {
+            isActive = false
+            assertionID = 0
+            showNotification(title: "Caffeine Deactivated", body: "Normal sleep behavior restored")
+        } else {
+            showError(message: "Failed to release sleep assertion (error: \(result))")
+        }
+    }
+
+    private func updateUI() {
+        guard let button = statusItem.button else { return }
+
+        button.image = isActive ? activeIcon : inactiveIcon
+        button.toolTip = isActive ? "Caffeine Active - Click to deactivate" : "Caffeine Inactive - Click to activate"
+
+        // Subtle animation on state change
+        button.animator().alphaValue = 0.5
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            button.animator().alphaValue = 1.0
+        }
+    }
+
+    private func showNotification(title: String, body: String) {
+        let notification = NSUserNotification()
+        notification.title = title
+        notification.informativeText = body
+        notification.soundName = nil
+        NSUserNotificationCenter.default.deliver(notification)
+    }
+
+    private func showError(message: String) {
+        let alert = NSAlert()
+        alert.messageText = "Caffeine Error"
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+
+    @objc private func quitApp() {
         NSApplication.shared.terminate(self)
     }
 }
 
-class CustomStatusButton: NSView {
-    var target: CaffeineApp?
-
-    override func mouseDown(with event: NSEvent) {
-        if event.type == .leftMouseDown {
-            target?.toggleCaffeine()  // Toggle Caffeine on left-click
-        }
-    }
-
-    override func rightMouseDown(with event: NSEvent) {
-        if let statusItem = target?.statusItem {
-            statusItem.menu?.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)  // Show menu on right-click
-        }
-    }
-}
+// MARK: - App Entry Point
 
 let app = NSApplication.shared
 let delegate = CaffeineApp()
 app.delegate = delegate
 app.run()
-
