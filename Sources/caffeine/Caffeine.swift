@@ -18,6 +18,7 @@ import Cocoa
 import IOKit.pwr_mgt
 import UserNotifications
 
+@MainActor
 class CaffeineApp: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var assertionID: IOPMAssertionID = 0
