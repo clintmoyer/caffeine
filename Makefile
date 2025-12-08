@@ -1,30 +1,34 @@
-PREFIX ?= /usr/local
-BINDIR = $(PREFIX)/bin
+INSTALL_DIR ?= ~/Applications
 
-ARCH := $(shell uname -m)
-ifeq ($(ARCH),x86_64)
-SWIFT_FLAGS = -O -target x86_64-apple-macosx11.0
-else ifeq ($(ARCH),arm64)
-SWIFT_FLAGS = -O -target arm64-apple-macosx11.0
-else
-$(error Unsupported architecture: $(ARCH))
-endif
+SWIFT_FLAGS = -O
+
+APP_NAME = Caffeine
+BUNDLE_ID = com.clintmoyer.caffeine
+MIN_MACOS_VERSION = 11.0
 
 .PHONY: all build install uninstall clean
 all: build
 build:
-	swiftc $(SWIFT_FLAGS) caffeine.swift -o caffeine
+	mkdir -p $(APP_NAME).app/Contents/MacOS
+	swiftc $(SWIFT_FLAGS) -target x86_64-apple-macos$(MIN_MACOS_VERSION) caffeine.swift -o caffeine_x86_64
+	swiftc $(SWIFT_FLAGS) -target arm64-apple-macos$(MIN_MACOS_VERSION) caffeine.swift -o caffeine_arm64
+	lipo -create -output $(APP_NAME).app/Contents/MacOS/$(APP_NAME) caffeine_x86_64 caffeine_arm64
+	rm -f caffeine_x86_64 caffeine_arm64
+	cp info.plist $(APP_NAME).app/Contents/Info.plist
+
 install: build
-	mkdir -p $(BINDIR)
-	install -m 755 caffeine $(BINDIR)/caffeine
-	@echo "Caffeine installed to $(BINDIR)/caffeine"
+	mkdir -p $(INSTALL_DIR)
+	cp -R $(APP_NAME).app $(INSTALL_DIR)/
+	@echo "Caffeine installed to $(INSTALL_DIR)/$(APP_NAME).app"
 	@echo ""
-	@echo "To start Caffeine, run: caffeine"
-	@echo "To run at login, add to Login Items in System Preferences"
+	@echo "To start Caffeine, run: open $(INSTALL_DIR)/$(APP_NAME).app"
+	@echo "To run at login, add to Login Items in System Settings"
+
 uninstall:
-	rm -f $(BINDIR)/caffeine
+	rm -rf $(INSTALL_DIR)/$(APP_NAME).app
 	@echo "Caffeine uninstalled"
+
 clean:
-	rm -f caffeine
-	rm -rf *.dSYM
+	rm -rf $(APP_NAME).app caffeine_* *.dSYM
+
 .DEFAULT_GOAL := build
