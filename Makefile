@@ -6,15 +6,21 @@ APP_NAME = Caffeine
 BUNDLE_ID = com.clintmoyer.caffeine
 MIN_MACOS_VERSION = 11.0
 
-.PHONY: all build install uninstall clean
+BUILD_DIR = .build
+
+.PHONY: all build install uninstall clean test
+
 all: build
+
 build:
+	swift build -c release --arch x86_64
+	swift build -c release --arch arm64
 	mkdir -p $(APP_NAME).app/Contents/MacOS
-	swiftc $(SWIFT_FLAGS) -target x86_64-apple-macos$(MIN_MACOS_VERSION) Caffeine.swift -o Caffeine_x86_64
-	swiftc $(SWIFT_FLAGS) -target arm64-apple-macos$(MIN_MACOS_VERSION) Caffeine.swift -o Caffeine_arm64
-	lipo -create -output $(APP_NAME).app/Contents/MacOS/$(APP_NAME) Caffeine_x86_64 Caffeine_arm64
-	rm -f Caffeine_x86_64 Caffeine_arm64
+	lipo -create -output $(APP_NAME).app/Contents/MacOS/$(APP_NAME) $(BUILD_DIR)/x86_64-apple-macosx/release/$(APP_NAME) $(BUILD_DIR)/arm64-apple-macosx/release/$(APP_NAME)
 	cp Info.plist $(APP_NAME).app/Contents/Info.plist
+
+test:
+	swift test
 
 install: build
 	mkdir -p $(INSTALL_DIR)
@@ -29,6 +35,6 @@ uninstall:
 	@echo "Caffeine uninstalled"
 
 clean:
-	rm -rf $(APP_NAME).app Caffeine_* *.dSYM
+	rm -rf $(APP_NAME).app $(BUILD_DIR) *.dSYM
 
 .DEFAULT_GOAL := build
