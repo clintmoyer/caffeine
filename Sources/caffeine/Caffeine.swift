@@ -33,6 +33,28 @@ class RealPowerManager: PowerManager {
     }
 }
 
+protocol NotificationManager: Sendable {
+    func showNotification(title: String, body: String)
+}
+
+final class RealNotificationManager: NotificationManager {
+    func showNotification(title: String, body: String) {
+        let center = UNUserNotificationCenter.current()
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = nil
+
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+
+        center.add(request) { error in
+            if let error = error {
+                print("Error delivering notification: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
 @MainActor
 class CaffeineApp: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!  // Removed 'private'
@@ -47,14 +69,17 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
     let inactiveIcon = NSImage(systemSymbolName: "cup.and.saucer", accessibilityDescription: "Caffeine Inactive")
 
     var powerManager: PowerManager
+    var notificationManager: NotificationManager
 
     override init() {
         self.powerManager = RealPowerManager()
+        self.notificationManager = RealNotificationManager()
         super.init()
     }
 
-    init(powerManager: PowerManager = RealPowerManager()) {
+    init(powerManager: PowerManager = RealPowerManager(), notificationManager: NotificationManager = RealNotificationManager()) {
         self.powerManager = powerManager
+        self.notificationManager = notificationManager
         super.init()
     }
 
@@ -204,19 +229,7 @@ class CaffeineApp: NSObject, NSApplicationDelegate {
     }
 
     private func showNotification(title: String, body: String) {
-        let center = UNUserNotificationCenter.current()
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = nil
-
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-
-        center.add(request) { error in
-            if let error = error {
-                print("Error delivering notification: \(error.localizedDescription)")
-            }
-        }
+        notificationManager.showNotification(title: title, body: body)
     }
 
     private func showError(message: String) {
