@@ -1,0 +1,18 @@
+Caffeine
+========
+
+A lightweight macOS menu bar application that prevents your system from sleeping.
+
+Features
+--------
+
+- Runs quietly in the menu bar with no dock icon
+- Left-click to toggle sleep prevention on/off
+- Right-click to access the quit menu
+- Uses native macOS IOKit power management APIs
+
+Requirements
+------------
+
+- macOS 13.0 or later
+- Swift 5.9 or later
